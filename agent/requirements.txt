@@ -1,1 +1,8 @@
-jupyter_client 
+fastapi
+uvicorn
+requests
+ipykernel
+jupyter_client
+python-dotenv
+ipython
+pillow 

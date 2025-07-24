@@ -2,6 +2,7 @@ from fastapi import FastAPI, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 import uuid
 import asyncio
+import httpx
 from . import firecracker
 
 app = FastAPI()
@@ -16,11 +17,11 @@ async def schedule_task(task: Task, background_tasks: BackgroundTasks):
     job_id = str(uuid.uuid4())
     jobs[job_id] = {"status": "queued", "task": task.task}
     
-    # This is where you would launch the Firecracker VM
-    config_path = firecracker.create_vm_config(job_id)
+    config_path, guest_ip = firecracker.create_vm_config(job_id)
     socket_path = firecracker.start_vm(job_id, config_path)
     
-    jobs[job_id]["socket_path"] = socket_path # Store the socket path for later
+    jobs[job_id]["socket_path"] = socket_path
+    jobs[job_id]["guest_ip"] = guest_ip
     
     background_tasks.add_task(run_agent_job, job_id)
     return {"job_id": job_id}
@@ -34,18 +35,31 @@ async def get_status(job_id: str):
 
 async def run_agent_job(job_id: str):
     jobs[job_id]["status"] = "running"
-    print(f"Running job {job_id} for task: {jobs[job_id]['task']}")
-    
-    # Simulate a long-running agent task
-    await asyncio.sleep(30) 
-    
-    # In a real implementation, you would get the project folder path
-    project_folder = "/path/to/generated/project" 
-    
-    jobs[job_id]["status"] = "completed"
-    jobs[job_id]["project_folder"] = project_folder
-    
-    # Stop the VM after the job is done
-    firecracker.stop_vm(jobs[job_id]["socket_path"])
-    
-    print(f"Job {job_id} completed.") 
+    task = jobs[job_id]['task']
+    guest_ip = jobs[job_id]['guest_ip']
+    agent_url = f"http://{guest_ip}:8000/run"
+
+    print(f"Running job {job_id} for task: {task} on VM with IP {guest_ip}")
+
+    # Wait for the VM to be ready
+    await asyncio.sleep(10)
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(agent_url, json={"task": task}, timeout=120)
+            response.raise_for_status()
+            
+            agent_result = response.json()
+            jobs[job_id]["status"] = "completed"
+            jobs[job_id]["result"] = agent_result
+            
+    except httpx.RequestError as e:
+        jobs[job_id]["status"] = "failed"
+        jobs[job_id]["error"] = f"Agent communication error: {e}"
+    except Exception as e:
+        jobs[job_id]["status"] = "failed"
+        jobs[job_id]["error"] = f"An unexpected error occurred: {e}"
+    finally:
+        # Stop the VM after the job is done
+        firecracker.stop_vm(jobs[job_id]["socket_path"])
+        print(f"Job {job_id} finished.") 

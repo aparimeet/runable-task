@@ -1,6 +1,10 @@
 import os
+from fastapi import FastAPI
+from pydantic import BaseModel
 from . import context
 from .tools import filesystem, shell, gui, code_executor
+
+app = FastAPI()
 
 class Agent:
     def __init__(self, task):
@@ -17,9 +21,6 @@ class Agent:
             ctx = context.get_context()
             print("Current plan:", ctx["plan"])
 
-            # Simple "planner" - for now, we'll just execute a few commands
-            # In a real agent, this would be an LLM call
-            
             # 1. Create a file
             action_result = filesystem.create_file("test.txt", "Hello from the agent!")
             context.update_history("filesystem.create_file", action_result)
@@ -32,16 +33,22 @@ class Agent:
             action_result = code_executor.execute_code("print('Hello from Jupyter!')")
             context.update_history("code_executor.execute_code", action_result)
 
-            # For now, we'll just run once and break
             break
 
         final_summary = "I have created a file, listed the files in the directory, and executed a print statement in python."
         context.set_summary(final_summary)
         print("Agent finished task.")
+        return context.get_context()
 
+class Task(BaseModel):
+    task: str
+
+@app.post("/run")
+async def run_agent(task: Task):
+    agent = Agent(task.task)
+    result = agent.run()
+    return {"status": "completed", "result": result}
 
 if __name__ == "__main__":
-    import sys
-    task = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "No task provided."
-    agent = Agent(task)
-    agent.run() 
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000) 
