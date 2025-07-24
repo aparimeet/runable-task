@@ -77,4 +77,4 @@ async def run_agent_job(job_id: str):
     # Stop the VM after the job is done
     firecracker.stop_vm(jobs[job_id]["socket_path"])
     jobs[job_id]["status"] = "complete"
-    print(f"Job {job_id} finished. Download folder at {jobs[job_id]["project_folder"]}")
+    print(f"Job {job_id} finished. Download folder at {jobs[job_id]['project_folder']}")
