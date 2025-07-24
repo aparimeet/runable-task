@@ -34,9 +34,9 @@ async def get_status(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
 
     if job["status"] == "complete":
-        return f"Job completed. Download folder at: {job['project_folder']}\n"
+        return f"Job completed. Download folder at: {job['project_folder']}"
     else:
-        return f"Job not completed. Current job status: {job['status']}\n"
+        return f"Job not completed. Current job status: {job['status']}"
 
 
 async def run_agent_job(job_id: str):
