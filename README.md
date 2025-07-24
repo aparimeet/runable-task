@@ -14,7 +14,13 @@ Before you begin, ensure you have the following installed and configured:
 
 ### Orchestrator
 
-1.  Install the required dependencies from the project root:
+1.  Install the required dependencies from the project root in a virtual env using uv (https://docs.astral.sh/uv/getting-started/installation/):
+    ```bash
+    uv venv venv
+    ```
+    ```bash
+    source venv/bin/activate
+    ```
     ```bash
     pip install -r orchestrator/requirements.txt
     ```
@@ -26,6 +32,10 @@ The agent runs inside a Docker container.
 1.  From the project root, build the Docker image:
     ```bash
     docker build -t runable-agent ./agent
+    ```
+    Run agent container with:
+    ```bash
+    docker run --rm -it -p 6080:6080 -p 8888:8888 runable-agent
     ```
 
 ## Running the Orchestrator
