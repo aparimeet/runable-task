@@ -1,8 +1,8 @@
 import os
 from fastapi import FastAPI
 from pydantic import BaseModel
-from . import context
-from .tools import filesystem, shell, gui, code_executor
+import context
+from tools import filesystem, shell, gui, code_executor
 
 app = FastAPI()
 
@@ -30,7 +30,8 @@ class Agent:
             context.update_history("shell.execute_shell_command", action_result)
             
             # 3. Run some python code
-            action_result = code_executor.execute_code("print('Hello from Jupyter!')")
+            code_executor_instance = code_executor.get_code_executor()
+            action_result = code_executor_instance.execute_code("print('Hello from Jupyter!')")
             context.update_history("code_executor.execute_code", action_result)
 
             break

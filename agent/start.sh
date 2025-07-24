@@ -2,4 +2,4 @@
 set -e
 
 # Start the agent server
-python3 -m agent.agent 
+python3 agent.py

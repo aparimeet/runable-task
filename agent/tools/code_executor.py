@@ -1,30 +1,54 @@
-import jupyter_client
+import atexit
+import subprocess
+from jupyter_client import BlockingKernelClient
+from jupyter_client.connect import find_connection_file
+import time
 
 class CodeExecutor:
     def __init__(self):
-        self.kc = jupyter_client.KernelClient()
-        self.kc.load_connection_file()
-        self.kc.start_channels()
+        # Start a Jupyter kernel as a subprocess
+        self.kernel_process = subprocess.Popen(['jupyter', 'kernel', '--KernelManager.autorestart=True'])
+        
+        # Wait for the connection file to be created
+        self.connection_file = ""
+        for _ in range(10):
+            try:
+                self.connection_file = find_connection_file()
+                break
+            except RuntimeError:
+                time.sleep(0.5)
+        
+        if not self.connection_file:
+            raise RuntimeError("Could not find Jupyter kernel connection file.")
 
-    def execute(self, code):
-        self.kc.execute(code)
-        reply = self.kc.get_shell_msg(timeout=60)
-        
-        # We can also get iopub messages for rich output (e.g., plots)
-        # For now, we'll focus on the execution result
-        
-        status = reply['content']['status']
-        if status == 'ok':
-            return "Execution successful."
-        elif status == 'error':
-            error_content = reply['content']
-            return f"Error: {error_content['ename']}: {error_content['evalue']}"
+        self.kc = BlockingKernelClient()
+        self.kc.load_connection_file(self.connection_file)
+        self.kc.start_channels()
+        atexit.register(self.__del__)
 
     def __del__(self):
-        self.kc.stop_channels()
+        if hasattr(self, 'kc'):
+            self.kc.stop_channels()
+        if hasattr(self, 'kernel_process') and self.kernel_process.poll() is None:
+            self.kernel_process.terminate()
+            self.kernel_process.wait()
 
-# This is a singleton to ensure we use the same kernel client
-code_executor = CodeExecutor()
+    def execute_code(self, code):
+        self.kc.execute(code)
+        reply = self.kc.get_shell_msg(timeout=5)
+        
+        # This is a simplified way to get output. 
+        # A real implementation would handle different message types.
+        if reply['content']['status'] == 'ok':
+            return reply['content']
+        else:
+            return reply['content']['traceback']
 
-def execute_code(code):
-    return code_executor.execute(code) 
+# This will be instantiated on demand
+code_executor = None
+
+def get_code_executor():
+    global code_executor
+    if code_executor is None:
+        code_executor = CodeExecutor()
+    return code_executor 
