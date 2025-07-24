@@ -22,7 +22,7 @@ Before you begin, ensure you have the following installed and configured:
     source venv/bin/activate
     ```
     ```bash
-    pip install -r orchestrator/requirements.txt
+    uv pip install -r orchestrator/requirements.txt
     ```
 
 ### Agent
