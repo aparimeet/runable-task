@@ -1,5 +1,7 @@
 FROM ubuntu:22.04 AS base
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-dev \
@@ -12,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xvfb \
     x11vnc \
     xdotool \
+    novnc \
     && rm -rf /var/lib/apt/lists/*
 
 # Add user and set up VNC password
