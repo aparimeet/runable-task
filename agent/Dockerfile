@@ -23,7 +23,7 @@ RUN useradd -m agent && \
 FROM tools AS jupyter
 
 RUN pip3 install --no-cache-dir jupyterlab notebook
-COPY agent/requirements.txt /app/requirements.txt
+COPY requirements.txt /app/requirements.txt
 RUN pip3 install --no-cache-dir -r /app/requirements.txt
 
 COPY --chown=agent:agent . /app
